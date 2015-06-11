@@ -35,6 +35,7 @@ warriner <- read.csv("/Users/teeniematlock/Desktop/big_data/warriner_affective_r
 AOA <- read.csv("/Users/teeniematlock/Desktop/big_data/kuperman_AOA/AOA_kuperman.csv")
 SUBTLEX <- read.csv("/Users/teeniematlock/Desktop/big_data/SUBTLEX_US/SUBTLEX_US_with_POS.csv")
 conc <- read.csv("/Users/teeniematlock/Desktop/big_data/brysbaert_concreteness_ratings/brysbaert_concreteness.csv")
+ELP <- read.csv("/Users/teeniematlock/Desktop/big_data/ELP/ELP_with_POS_cleaned.csv")
 
 ### Rename columns so they can be easily merged:
 
@@ -58,7 +59,7 @@ dantzig$DantzigDominantModality <- gsub("Dantzig","",
 
 ### Rename the lynott noun norm columns so that there's no clash of column names:
 
-names(lynott) <- paste0("LynottNoun",names(lynott))
+names(lynott_nouns) <- paste0("LynottNoun",names(lynott_nouns))
 
 ### Create Warriner absolut valence variable and rename that ugly valence column name:
 
@@ -68,16 +69,18 @@ warriner$AbsValence <- abs(warriner$V.Mean.Sum-mean(warriner$V.Mean.Sum))
 
 warriner <- rename(warriner,Valence=V.Mean.Sum)
 SUBTLEX <- rename(SUBTLEX,POS=Dom_PoS_SUBTLEX,WordFreq=Lg10WF)
+ELP <- rename(ELP,RT=I_Mean_RT,NamingRT=I_NMG_Mean_RT)
 
 ### Merge all information:
 
 icon <- cbind(icon,
 	dantzig[match(icon$Word,dantzig$Word),grep("Dantzig",names(dantzig))],
 	lynott[match(icon$Word,lynott$Word),grep("Mean|Dominant",names(lynott))],
-	lynott_nouns[match(icon$Word,lynott_nouns$Word),grep("Mean|Dominant",names(lynott))],
+	lynott_nouns[match(icon$Word,lynott_nouns$Word),grep("mean|Dominant",names(lynott_nouns))],
 	warriner[match(icon$Word,warriner$Word),c("Valence","AbsValence")],
 	data.frame(AOA=AOA[match(icon$Word,AOA$Word),]$Rating.Mean),
 	data.frame(Conc=conc[match(icon$Word,conc$Word),]$Conc.M),
+	ELP[match(icon$Word,ELP$Word),c("RT","NamingRT")],
 	SUBTLEX[match(icon$Word,SUBTLEX$Word),c("POS","WordFreq")],
 	data.frame(OriginalPOS=icon1[match(icon$Word,icon1$Word),]$POS))
 

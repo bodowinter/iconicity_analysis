@@ -3,27 +3,173 @@ Iconicity analysis first exporation
 
 This document presents an exploratory analysis of the iconicity data using both lists:
 
-* the original norms by Lynn, Marcus and Gary (N=592)
-* the new norms (N=1360)
+* List 1: the original norms by Lynn, Marcus and Gary (N=592)
+* List 2: the new norms (N=1360)
 
-Several analyses will be presented, first:
+Several analyses were performed:
 
-* replicating the POS differences for List 1 and List 2
-* the relationship between AOA ***ratings*** and iconicity
+* part-of-speech differences for List 1 and List 2
+* the relationship between AOA ***ratings*** and iconicity (a conceptual replication of your submitted paper?)
 * the relationship between concreteness and iconicity
-* the relationship between modalities and iconicity
+* the relationship between affect and iconicity
+* the relationship between sensory modality ratings and iconicity
+* finally: does iconicity predict unique RT variance?
 
-
-
-
-
-```{r}
-summary(cars)
+```{r echo=FALSE}
+     setwd("/Users/teeniematlock/Desktop/research/iconicity/analysis/")
+     options(warn=-1)
 ```
 
-You can also embed plots, for example:
 
-```{r fig.width=7, fig.height=6}
-plot(cars)
+Load in data and packages. Relevel for better display:
+
+```{r cache=FALSE}
+     icon <- read.csv("iconicity_ratings_both.csv")
+     library(ggplot2)
+     library(mgcv)
+     icon$ContentPOS <- factor(icon$ContentPOS,
+                              levels=c("Verb","Noun","Adjective","Adverb"))
 ```
+
+<br><br><br>
+## POS differences
+
+How does iconicity differ depending on parts of speech differences?
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon[!is.na(icon$ContentPOS),],
+          aes(x=ContentPOS,y=Written,fill=ContentPOS)) +
+          geom_boxplot() + facet_grid(~ListIdentifier)
+     anova(lm(Written ~ ContentPOS,subset(icon,ListIdentifier=="list1")))
+     anova(lm(Written ~ ContentPOS,subset(icon,ListIdentifier=="list2")))
+```
+
+Notice that I have omitted "grammatical" for now. This is not straightforward, e.g., how should certain adverbs be treated?
+
+<br><br><br>
+## AOA ratings
+
+How does iconicity depend on AOA ratings? (Taken from Kuperman et al.'s mega-norming study)
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon,
+            aes(x=AOA,y=Written)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm") + facet_grid(~ListIdentifier)
+```
+
+<br>
+As expected given your search criteria, the original list has much higher AOA ratings. Overall, there is a significant downward trend with words rated to be acquired later having less iconicity, even after controlling for frequency:
+
+```{r cache=T}
+     summary(lm(Written ~ AOA+WordFreq,icon))
+```
+
+This shows the pure effect of AOA ratings with word frequency residualized out:
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     icon$res <- NA
+     icon[!is.na(icon$WordFreq),]$res <- residuals(lm(Written ~ WordFreq,icon))
+     ggplot(icon,
+            aes(x=AOA,y=res)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm")
+```
+
+<br><br><br>
+## Concreteness
+
+How is iconicity related to concreteness?
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon,
+            aes(x=Conc,y=Written)) +
+          geom_point(shape=16) +
+          geom_smooth()
+```
+
+It seems to be that words of intermediate concreteness are the most iconic words. We can test this by fitting a quadratic model:
+
+```{r cache=T}
+     anova(lm(Written ~ Conc + I(Conc^2),icon))
+```
+
+<br><br><br>
+## Affect ratings
+
+How is iconicity related to affect? (FYI: I am taking a measure of "absolute valence" here. According to this measure highly valenced words have high numbers regardless of positive or negative valence)
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon,
+            aes(x=AbsValence,y=Written)) +
+          geom_point(shape=16) +
+          geom_smooth()
+```
+
+No clear trend detectable and no significant effect (fitting a GAM here)
+
+```{r cache=T}
+     summary(gam(Written ~ s(AbsValence),data=icon))
+```
+
+<br><br><br>
+## Iconicity and modality
+
+For the Lynott and Connell (2009) adjective norms, let's check the relationship between iconicity and the dominant modality, e.g., "shiny" has dominant modality = "visual".
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon[!is.na(icon$DominantModality),],
+            aes(x=DominantModality,y=Written,fill=DominantModality)) +
+          geom_boxplot()
+```
+
+Let's do the same thing for the van Dantzig et al. (2013) norms, which are largely overlapping with Lynott and Connell (2009), but they stem from an independent rating:
+
+```{r cache=FALSE, fig.width=8, fig.height=4}
+     ggplot(icon[!is.na(icon$DantzigDominantModality),],
+            aes(x=DantzigDominantModality,y=Written,
+                fill=DantzigDominantModality)) +
+          geom_boxplot()
+```
+
+We can test whether there are significant iconicity differences between words for the different modalities:
+
+```{r cache=FALSE}
+     anova(lm(Written ~ DominantModality,icon))
+     anova(lm(Written ~ DantzigDominantModality,icon))
+```
+
+
+<br><br><br>
+## Does iconicity predict unique variance in reaction times?
+
+For now, I am simply testing whether iconicity predicts unique variance in reaction times above and beyond AOA and word frequency. I am going to use the Lexical Decision times from the English Lexicon Project (Balota et al., 2007). 
+
+```{r cache=FALSE}
+     summary(lm(RT ~ AOA + WordFreq + Written,icon))
+```
+
+Once AOA and WordFreq is controlled for, there seems to be no effect of iconicity. However, what about the word naming reaction times?
+
+
+```{r cache=FALSE}
+     summary(lm(NamingRT ~ AOA + WordFreq + Written,icon))
+```
+
+Let's visualize that effect by residualizing AOA and WordFreq out:
+
+```{r cache=T, fig.width=8, fig.height=4}
+     icon$res <- NA
+     NAs <- (is.na(icon$WordFreq)|is.na(icon$AOA)|is.na(icon$NamingRT))
+     icon[!NAs,]$res <- residuals(lm(NamingRT ~ WordFreq + AOA,
+                                   icon[!NAs,]))
+     ggplot(icon,
+            aes(x=Written,y=res)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm") 
+```
+<br>
+The effect is small, but hey... ~4ms less per increase of iconicity 1. Not too bad.
+
+
 
