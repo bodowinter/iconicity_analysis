@@ -1,0 +1,29 @@
+Iconicity analysis first exporation
+========================================================
+
+This document presents an exploratory analysis of the iconicity data using both lists:
+
+* the original norms by Lynn, Marcus and Gary (N=592)
+* the new norms (N=1360)
+
+Several analyses will be presented, first:
+
+* replicating the POS differences for List 1 and List 2
+* the relationship between AOA ***ratings*** and iconicity
+* the relationship between concreteness and iconicity
+* the relationship between modalities and iconicity
+
+
+
+
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r fig.width=7, fig.height=6}
+plot(cars)
+```
+

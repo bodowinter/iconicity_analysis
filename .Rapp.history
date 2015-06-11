@@ -1,0 +1,1946 @@
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(42)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(i in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == i,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+c	ondition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+}
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(42)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(i in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == i,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+}
+cat(paste(i,"\n"))
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(42)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(i in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == i,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+SE_conv_dyad
+SE_conv_nodyad
+SE_dyad
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(42)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(42)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+SE_conv_dyad
+i
+SE_nodyad[1:14]
+SE_dyad[1:14]
+t.test(SE_nodyad[1:14],SE_dyad[1:14])
+SE_conv_nodyad[1:14]
+SE_conv_dyad[1:14]
+t.test(SE_conv_dyad[1:14],SE_conv_dyad[1:14])
+t.test(SE_conv_nodyad[1:14],SE_conv_dyad[1:14])
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(46)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+i
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(666)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.05#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+u
+i
+t.test(SE_nodyad[1:103],SE_dyad[1:103],paired=T)
+mean(SE_nodyad[1:103])
+mean(SE_dyad[1:103])
+t.test(SE_conv_nodyad[1:103],SE_conv_dyad[1:103],paired=T)
+mean(SE_conv_nodyad[1:103])
+mean(v)
+mean(SE_conv_dyad[1:103])
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(666)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.25#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+df2
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(666)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.15#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+i
+t.test(SE_nodyad[1:i],SE_dyad[1:i],paired=T)
+t.test(SE_conv_nodyad[1:i],SE_conv_dyad[1:i],paired=T)
+mean(SE_conv_nodyad[1:i])
+mean(SE_conv_dyad[1:i]
+)
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 25#
+nitem = 20#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(666)#
+#
+nsim = 1000#
+SE_nodyad = numeric(nsim)#
+SE_dyad = numeric(nsim)#
+SE_conv_nodyad = numeric(nsim)#
+SE_conv_dyad = numeric(nsim)#
+#
+for(i in 1:nsim){#
+	## Add random intercepts:#
+	df$resp = 500 + rnorm(nsub,sd=30)[df$subject] + rnorm(nitem,sd=20)[df$item] + rnorm(nsub/2)[df$dyad]#
+	## Add trial-level noise:#
+	df$resp = df$resp + rnorm(nrow(df),sd=10)#
+	## Add effect:#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+	## Generate by subject slopes:#
+	subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+	## Generate by dyad slopes:#
+	dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+	df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+	## Analysis:#
+#
+	library(lme4)#
+#
+	## Model without dyad:#
+#
+	xmdl_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df)#
+	SE_nodyad[i] = summary(xmdl_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+	SE_dyad[i] = summary(xmdl_dyad)$coefficients[2,2]#
+#
+	## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+	df2 = df#
+#
+	## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+	convergence_factor = 0.15#
+#
+	## Loop through this:#
+#
+	for(j in 1:(nsub/2)){#
+		xtemp = df2[df2$dyad == j,]#
+		these_subjects = unique(xtemp$subject)#
+		xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+		change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+		changes = change_target*convergence_factor#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+			df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+		}#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_nodyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) +#
+		(0+condition|subject),df2)#
+	SE_conv_nodyad[i] = summary(xmdl_conv_nodyad)$coefficients[2,2]#
+#
+	## Model without dyad:#
+#
+	xmdl_conv_dyad = lmer(resp ~ condition +#
+		(1|subject) + (1|item) + (1|dyad) + #
+		(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+	SE_conv_dyad[i] = summary(xmdl_conv_dyad)$coefficients[2,2]#
+#
+	## Tell the outside world where you are at:#
+	if(i %% 50 == 0){#
+		print(cat(paste(i,"\n")))#
+		}#
+#
+}
+i
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(1)#
+## Add random intercepts:#
+df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+## Add effect:#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+## Generate by subject slopes:#
+subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+## Generate by dyad slopes:#
+dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+## Analysis:#
+#
+library(lme4)#
+#
+## Model without dyad:#
+#
+xmdl_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df)#
+summary(xmdl_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+summary(xmdl_dyad)#
+#
+## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+df2 = df#
+#
+## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+convergence_factor = 0.05#
+#
+## Loop through this:#
+#
+for(i in 1:(nsub/2)){#
+	xtemp = df2[df2$dyad == i,]#
+	these_subjects = unique(xtemp$subject)#
+	xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+	change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+	changes = change_target*convergence_factor#
+	df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+	df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+	}#
+#
+## Model without dyad:#
+#
+xmdl_conv_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df2)#
+summary(xmdl_conv_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_conv_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+summary(xmdl_conv_dyad)
+set.seed(2)#
+## Add random intercepts:#
+df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+## Add effect:#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+## Generate by subject slopes:#
+subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+## Generate by dyad slopes:#
+dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+## Analysis:#
+#
+library(lme4)#
+#
+## Model without dyad:#
+#
+xmdl_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df)#
+summary(xmdl_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+summary(xmdl_dyad)#
+#
+## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+df2 = df#
+#
+## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+convergence_factor = 0.05#
+#
+## Loop through this:#
+#
+for(i in 1:(nsub/2)){#
+	xtemp = df2[df2$dyad == i,]#
+	these_subjects = unique(xtemp$subject)#
+	xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+	change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+	changes = change_target*convergence_factor#
+	df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+	df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+	}#
+#
+## Model without dyad:#
+#
+xmdl_conv_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df2)#
+summary(xmdl_conv_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_conv_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+summary(xmdl_conv_dyad)
+set.seed(3)#
+## Add random intercepts:#
+df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+## Add effect:#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+## Generate by subject slopes:#
+subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+## Generate by dyad slopes:#
+dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+## Analysis:#
+#
+library(lme4)#
+#
+## Model without dyad:#
+#
+xmdl_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df)#
+summary(xmdl_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+summary(xmdl_dyad)#
+#
+## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+df2 = df#
+#
+## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+convergence_factor = 0.05#
+#
+## Loop through this:#
+#
+for(i in 1:(nsub/2)){#
+	xtemp = df2[df2$dyad == i,]#
+	these_subjects = unique(xtemp$subject)#
+	xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+	change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+	changes = change_target*convergence_factor#
+	df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+	df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+	}#
+#
+## Model without dyad:#
+#
+xmdl_conv_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df2)#
+summary(xmdl_conv_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_conv_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+summary(xmdl_conv_dyad)
+set.seed(4)#
+## Add random intercepts:#
+df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+## Add effect:#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+## Generate by subject slopes:#
+subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+## Generate by dyad slopes:#
+dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+## Analysis:#
+#
+library(lme4)#
+#
+## Model without dyad:#
+#
+xmdl_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df)#
+summary(xmdl_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+summary(xmdl_dyad)#
+#
+## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+df2 = df#
+#
+## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+convergence_factor = 0.05#
+#
+## Loop through this:#
+#
+for(i in 1:(nsub/2)){#
+	xtemp = df2[df2$dyad == i,]#
+	these_subjects = unique(xtemp$subject)#
+	xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+	change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+	changes = change_target*convergence_factor#
+	df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+	df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+	}#
+#
+## Model without dyad:#
+#
+xmdl_conv_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df2)#
+summary(xmdl_conv_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_conv_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+summary(xmdl_conv_dyad)
+## Bodo Winter#
+## April 30, 2015#
+## Playing around with ignoring dyad effects#
+#
+## Generate design matrix#
+#
+nsub = 20#
+nitem = 10#
+#
+subject = gl(nsub,nitem)#
+item = as.factor(rep(1:nitem,nsub))#
+dyad = gl(10,20)#
+condition = as.factor(rep(c("A","B"),nsub*nitem/2))#
+#
+df = data.frame(subject,dyad,item,condition)#
+#
+## Generate response variable:#
+#
+set.seed(5)#
+## Add random intercepts:#
+df$resp = 300 + rnorm(nsub,sd=20)[df$subject] + rnorm(nitem,sd=10)[df$item] + rnorm(nsub/2)[df$dyad]#
+## Add effect:#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + 30			# effect = 10ms#
+## Generate by subject slopes:#
+subject_slopes = rnorm(nsub,sd=10)[df$subject]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + subject_slopes[df$condition=="B"]#
+## Generate by dyad slopes:#
+dyad_slopes = rnorm(nsub,sd=10)[df$dyad]#
+df[df$condition=="B",]$resp = df[df$condition=="B",]$resp + dyad_slopes[df$condition=="B"]#
+#
+## Analysis:#
+#
+library(lme4)#
+#
+## Model without dyad:#
+#
+xmdl_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df)#
+summary(xmdl_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df)			# notice the increase in standard error#
+summary(xmdl_dyad)#
+#
+## Add phonetic accommodation, i.e., speakers within the same dyad are more similar to each other:#
+#
+df2 = df#
+#
+## Parameter for how much person 2 converges to person 1 (percentage):#
+#
+convergence_factor = 0.05#
+#
+## Loop through this:#
+#
+for(i in 1:(nsub/2)){#
+	xtemp = df2[df2$dyad == i,]#
+	these_subjects = unique(xtemp$subject)#
+	xagr = aggregate(resp ~ condition*subject,xtemp,mean)#
+	change_target = xagr[1:2,"resp"]-xagr[3:4,"resp"]#
+	changes = change_target*convergence_factor#
+	df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "A",]$resp + changes[1]#
+	df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp =#
+		df2[df2$subject == these_subjects[2] & df2$condition == "B",]$resp + changes[2]	#
+	}#
+#
+## Model without dyad:#
+#
+xmdl_conv_nodyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) +#
+	(0+condition|subject),df2)#
+summary(xmdl_conv_nodyad)#
+#
+## Model without dyad:#
+#
+xmdl_conv_dyad = lmer(resp ~ condition +#
+	(1|subject) + (1|item) + (1|dyad) + #
+	(0+condition|subject) + (0+condition|dyad),df2)			# notice the increase in standard error#
+summary(xmdl_conv_dyad)
+citation()
+set.seed(42)#
+cond = gl(2,10)		# condition#
+resp = 3*as.numeric(cond)+rnorm(10)		# some arbitrary score#
+#
+## Coordinates for x-axis:#
+#
+xcor = c(0.5,1.5)#
+#
+## Make the plot:#
+#
+quartz("",5,6)#
+par(mai=c(1.8,1.5,0.25,0.25))#
+emptyplot(1,1,xlim=c(0.25,1.75),ylim=c(0,10))#
+points(rep(xcor,each=10),resp,pch=19,col=rgb(0,0,0,0.4),cex=1.5)#
+axis(side=1,at=xcor,labels=c("Control","Training"),font=2,lwd=4,cex.axis=1.5)#
+axis(side=2,at=seq(0,10,2.5),las=2,font=2,lwd=4,cex.axis=1.5)#
+segments(x0=xcor[1],x1=xcor[2],y0=mean(resp[cond==1]),y1=mean(resp[cond==2]),lwd=4)#
+mtext("Score",side=2,line=4,font=2,cex=2)#
+## Coding schemes below the axis labels:#
+text(c(-0.15,xcor),y=-2.5,labels=c("Treatment","0","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-3.5,labels=c("Sum","-1","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-4.5,labels=c("Deviation","-0.5","0.5"),xpd=NA,font=2,cex=1.5)#
+# text(-0.15,y=-5.7,"Coding",xpd=NA,font=2,cex=1.5)
+## Bodo Winter#
+## August 5, 2014#
+## Graphs for best practices paper#
+#
+emptyplot=function(x,y,xaxt="n",yaxt="n",ylab="",xlab="",type="n",main="",...){#
+	plot(x,y,xaxt=xaxt,yaxt=yaxt,ylab=ylab,xlab=xlab,type=type,main=main,bty="n",...)#
+	}
+set.seed(42)#
+cond = gl(2,10)		# condition#
+resp = 3*as.numeric(cond)+rnorm(10)		# some arbitrary score#
+#
+## Coordinates for x-axis:#
+#
+xcor = c(0.5,1.5)#
+#
+## Make the plot:#
+#
+quartz("",5,6)#
+par(mai=c(1.8,1.5,0.25,0.25))#
+emptyplot(1,1,xlim=c(0.25,1.75),ylim=c(0,10))#
+points(rep(xcor,each=10),resp,pch=19,col=rgb(0,0,0,0.4),cex=1.5)#
+axis(side=1,at=xcor,labels=c("Control","Training"),font=2,lwd=4,cex.axis=1.5)#
+axis(side=2,at=seq(0,10,2.5),las=2,font=2,lwd=4,cex.axis=1.5)#
+segments(x0=xcor[1],x1=xcor[2],y0=mean(resp[cond==1]),y1=mean(resp[cond==2]),lwd=4)#
+mtext("Score",side=2,line=4,font=2,cex=2)#
+## Coding schemes below the axis labels:#
+text(c(-0.15,xcor),y=-2.5,labels=c("Treatment","0","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-3.5,labels=c("Sum","-1","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-4.5,labels=c("Deviation","-0.5","0.5"),xpd=NA,font=2,cex=1.5)#
+# text(-0.15,y=-5.7,"Coding",xpd=NA,font=2,cex=1.5)
+set.seed(42)#
+cond = gl(2,10)		# condition#
+resp = 3*as.numeric(cond)+rnorm(10)		# some arbitrary score#
+#
+## Coordinates for x-axis:#
+#
+xcor = c(0.5,1.5)#
+#
+## Make the plot:#
+#
+quartz("",5,6)#
+par(mai=c(1.8,1.5,0.25,0.25))#
+emptyplot(1,1,xlim=c(0.25,1.75),ylim=c(0,10))#
+points(rep(xcor,each=10),resp,pch=19,col=rgb(0,0,0,0.4),cex=1.5)#
+axis(side=1,at=xcor,labels=c("Control","Training"),font=2,lwd=4,cex.axis=1.5)#
+axis(side=2,at=seq(0,10,2.5),las=2,font=2,lwd=4,cex.axis=1.5)#
+segments(x0=xcor[1],x1=xcor[2],y0=mean(resp[cond==1]),y1=mean(resp[cond==2]),lwd=4)#
+mtext("Score",side=2,line=4,font=2,cex=2)#
+## Coding schemes below the axis labels:#
+text(c(-0.15,xcor),y=-2.5,labels=c("Treatment Coding","0","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-3.5,labels=c("Sum Coding","-1","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-4.5,labels=c("Deviation Coding","-0.5","0.5"),xpd=NA,font=2,cex=1.5)#
+# text(-0.15,y=-5.7,"Coding",xpd=NA,font=2,cex=1.5)
+set.seed(42)#
+cond = gl(2,10)		# condition#
+resp = 3*as.numeric(cond)+rnorm(10)		# some arbitrary score#
+#
+## Coordinates for x-axis:#
+#
+xcor = c(0.5,1.5)#
+#
+## Make the plot:#
+#
+quartz("",5.5,6)#
+par(mai=c(1.8,1.8,0.25,0.25))#
+emptyplot(1,1,xlim=c(0.25,1.75),ylim=c(0,10))#
+points(rep(xcor,each=10),resp,pch=19,col=rgb(0,0,0,0.4),cex=1.5)#
+axis(side=1,at=xcor,labels=c("Control","Training"),font=2,lwd=4,cex.axis=1.5)#
+axis(side=2,at=seq(0,10,2.5),las=2,font=2,lwd=4,cex.axis=1.5)#
+segments(x0=xcor[1],x1=xcor[2],y0=mean(resp[cond==1]),y1=mean(resp[cond==2]),lwd=4)#
+mtext("Score",side=2,line=4,font=2,cex=2)#
+## Coding schemes below the axis labels:#
+text(c(-0.15,xcor),y=-2.5,labels=c("Treatment Coding","0","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-3.5,labels=c("Sum Coding","-1","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-4.5,labels=c("Deviation Coding","-0.5","0.5"),xpd=NA,font=2,cex=1.5)#
+# text(-0.15,y=-5.7,"Coding",xpd=NA,font=2,cex=1.5)
+set.seed(42)#
+cond = gl(2,10)		# condition#
+resp = 3*as.numeric(cond)+rnorm(10)		# some arbitrary score#
+#
+## Coordinates for x-axis:#
+#
+xcor = c(0.5,1.5)#
+#
+## Make the plot:#
+#
+quartz("",5,6)#
+par(mai=c(1.8,1.5,0.25,0.25))#
+emptyplot(1,1,xlim=c(0.25,1.75),ylim=c(0,10))#
+points(rep(xcor,each=10),resp,pch=19,col=rgb(0,0,0,0.4),cex=1.5)#
+axis(side=1,at=xcor,labels=c("Control","Training"),font=2,lwd=4,cex.axis=1.5)#
+axis(side=2,at=seq(0,10,2.5),las=2,font=2,lwd=4,cex.axis=1.5)#
+segments(x0=xcor[1],x1=xcor[2],y0=mean(resp[cond==1]),y1=mean(resp[cond==2]),lwd=4)#
+mtext("Score",side=2,line=4,font=2,cex=2)#
+## Coding schemes below the axis labels:#
+text(c(-0.15,xcor),y=-2.5,labels=c("Treatment","0","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-3.5,labels=c("Sum","-1","1"),xpd=NA,font=2,cex=1.5)#
+text(c(-0.15,xcor),y=-4.5,labels=c("Deviation","-0.5","0.5"),xpd=NA,font=2,cex=1.5)#
+# text(-0.15,y=-5.7,"Coding",xpd=NA,font=2,cex=1.5)
+15*365.242
+## Bodo Winter#
+## Created: August 31, 2014; Edits October 23, 2014; October 24, 2014#
+## Added additional data for E5A & E5B on November 15, 2014; November 16, 2014#
+## Added graph with overall average effect on April 23, 2015#
+## Final commenting & brush-up for publication May 5, 2015#
+## Analysis of Courtroom Experiment by Winter, Daguna & Matlock#
+#
+## Load in data:#
+#
+E1 = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E1.csv",stringsAsFactors=T)#
+E2 = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E2.csv",stringsAsFactors=T)#
+E3 = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E3.csv",stringsAsFactors=T)#
+E4A = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E4A.csv",stringsAsFactors=T)#
+E4B = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E4B.csv",stringsAsFactors=T)#
+E5A = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E5A.csv",stringsAsFactors=T)#
+E5B = read.csv("http://www.bodowinter.com/stuff/psych_science_courtroom/E5B.csv",stringsAsFactors=T)#
+#
+## Description of experiments:#
+#
+# E1: 3D side view version with no controls for font size#
+# E2: 3D side view version with controls for font siz#
+# E3: 2D bird's eye version#
+# E4A: 3D side view version with added linguistic context#
+# E4B: 2D bird's eye version with added linguistic context#
+# E5A: 3D side view version with added linguistic context and delayed response#
+# E5B: 2D bird's eye version with added linguistic context and delayed response#
+#
+## Description of additional analysis not presented in the short report:#
+# - We tested whether "confidence about decision" played a role (scale from 1 to 9)#
+# - We tested whether actual jury experience played a role#
+# - We tested whether room orientation played a role; in Experiment 1 and Experiment 2,#
+# we additionally manipulated whether the jury box was on the left or the right side of the room#
+#
+## How many participants per experiment (each row = one participant):#
+#
+nrow(E1)		# 105#
+nrow(E2)		# 117#
+nrow(E3)		# 102#
+nrow(E4A)	# 122#
+nrow(E4B)	# 122#
+nrow(E5A)	# 201#
+nrow(E5B)	# 201#
+#
+## How many participants are there overall?#
+#
+nrow(E1)+nrow(E2)+nrow(E3)+nrow(E4A)+nrow(E4B)+nrow(E5A)+nrow(E5B)		# 970#
+#
+## Make summary tables:#
+#
+(E1.tab <- table(E1$distance,E1$choice))#
+(E2.tab <- table(E2$distance,E2$choice))#
+(E3.tab <- table(E3$distance,E3$choice))#
+(E4A.tab <- table(E4A$distance,E4A$choice))#
+(E4B.tab <- table(E4B$distance,E4B$choice))#
+(E5A.tab <- table(E5A$distance,E5A$choice))#
+(E5B.tab <- table(E5B$distance,E5B$choice))#
+#
+## Make proportions:#
+## (proportions are row-wise, that it separately for the far and near responses:#
+#
+E1.tab[1,] = E1.tab[1,]/rowSums(E1.tab)[1]#
+E1.tab[2,] = E1.tab[2,]/rowSums(E1.tab)[2]#
+E2.tab[1,] = E2.tab[1,]/rowSums(E2.tab)[1]#
+E2.tab[2,] = E2.tab[2,]/rowSums(E2.tab)[2]#
+E3.tab[1,] = E3.tab[1,]/rowSums(E3.tab)[1]#
+E3.tab[2,] = E3.tab[2,]/rowSums(E3.tab)[2]#
+E4A.tab[1,] = E4A.tab[1,]/rowSums(E4A.tab)[1]#
+E4A.tab[2,] = E4A.tab[2,]/rowSums(E4A.tab)[2]#
+E4B.tab[1,] = E4B.tab[1,]/rowSums(E4B.tab)[1]#
+E4B.tab[2,] = E4B.tab[2,]/rowSums(E4B.tab)[2]#
+E5A.tab[1,] = E5A.tab[1,]/rowSums(E5A.tab)[1]#
+E5A.tab[2,] = E5A.tab[2,]/rowSums(E5A.tab)[2]#
+E5B.tab[1,] = E5B.tab[1,]/rowSums(E5B.tab)[1]#
+E5B.tab[2,] = E5B.tab[2,]/rowSums(E5B.tab)[2]#
+#
+## Coding categorical predictors (deviation coding):#
+#
+contrasts(E1$distance) = contr.sum(2)/2#
+contrasts(E1$experience) = contr.sum(2)/2#
+contrasts(E1$room_orientation) = contr.sum(2)/2#
+contrasts(E2$distance) = contr.sum(2)/2#
+contrasts(E2$experience) = contr.sum(2)/2#
+contrasts(E3$distance) = contr.sum(2)/2#
+contrasts(E3$experience) = contr.sum(2)/2#
+contrasts(E3$room_orientation) = contr.sum(2)/2#
+contrasts(E4A$distance) = contr.sum(2)/2#
+contrasts(E4A$experience) = contr.sum(2)/2#
+contrasts(E4A$language_perspective) = contr.sum(2)/2#
+contrasts(E4A$language_evidence) = contr.sum(2)/2#
+contrasts(E4B$distance) = contr.sum(2)/2#
+contrasts(E4B$experience) = contr.sum(2)/2#
+contrasts(E4B$language_perspective) = contr.sum(2)/2#
+contrasts(E4B$language_evidence) = contr.sum(2)/2#
+contrasts(E5A$distance) = contr.sum(2)/2#
+contrasts(E5A$experience) = contr.sum(2)/2#
+contrasts(E5A$language_perspective) = contr.sum(2)/2#
+contrasts(E5A$language_evidence) = contr.sum(2)/2#
+contrasts(E5B$distance) = contr.sum(2)/2#
+contrasts(E5B$experience) = contr.sum(2)/2#
+contrasts(E5B$language_perspective) = contr.sum(2)/2#
+contrasts(E5B$language_evidence) = contr.sum(2)/2#
+#
+## Centering confidence:#
+#
+E1$confidence = E1$confidence-mean(E1$confidence)#
+E2$confidence = E2$confidence-mean(E2$confidence)#
+E2$confidence = E2$confidence-mean(E2$confidence)#
+E3$confidence = E3$confidence-mean(E3$confidence)#
+E4A$confidence = E4A$confidence-mean(E4A$confidence)#
+E4B$confidence = E4B$confidence-mean(E4B$confidence)#
+E5A$confidence = E5A$confidence-mean(E5A$confidence)#
+E5B$confidence = E5B$confidence-mean(E5B$confidence)#
+#
+## Logistic Regression Analysis:#
+#
+summary(E1.mdl <- glm(choice ~ #
+	distance + confidence + experience + room_orientation + room_orientation:distance,#
+	E1,family="binomial"))#
+summary(E2.mdl <- glm(choice ~#
+	distance + confidence + experience,#
+	E2,family="binomial"))#
+summary(E3.mdl <- glm(choice ~#
+	distance + confidence + experience + room_orientation + room_orientation:distance,#
+	E3,family="binomial"))#
+summary(E4A.mdl <- glm(choice ~#
+	distance + confidence + experience +#
+	language_perspective + language_evidence + language_perspective:language_evidence,#
+	E4A,family="binomial"))#
+summary(E4B.mdl <- glm(choice ~#
+	distance + confidence + experience +#
+	language_perspective + language_evidence + language_perspective:language_evidence,#
+	E4B,family="binomial"))#
+summary(E5A.mdl <- glm(choice ~#
+	distance + confidence + experience + question_orientation + #
+	language_perspective + language_evidence + language_perspective:language_evidence,#
+	E5A,family="binomial"))#
+summary(E5B.mdl <- glm(choice ~#
+	distance + confidence + experience + question_orientation + #
+	language_perspective + language_evidence + language_perspective:language_evidence,#
+	E5B,family="binomial"))#
+#
+## Calculate R-squared for all models:#
+#
+library(MuMIn)#
+r.squaredGLMM(E1.mdl)#
+r.squaredGLMM(E2.mdl)#
+r.squaredGLMM(E3.mdl)#
+r.squaredGLMM(E4A.mdl)#
+r.squaredGLMM(E4B.mdl)#
+r.squaredGLMM(E5A.mdl)#
+r.squaredGLMM(E5B.mdl)#
+#
+## Adding a graph that averages all effects#
+#
+xtab = table(E1$distance,E1$choice)+#
+table(E2$distance,E2$choice)+table(E3$distance,E3$choice)+#
+table(E4A$distance,E4A$choice)+table(E4B$distance,E4B$choice)+#
+table(E5A$distance,E5A$choice)+table(E5B$distance,E5B$choice)#
+#
+defendant_far = xtab[1,]/rowSums(xtab)[1]#
+defendant_close = xtab[2,]/rowSums(xtab)[2]#
+#
+gap_between = 0.1#
+big_gap = 0.5#
+above_factor = 5#
+quartz("",8,6);par(mai=c(1,2,1,0.5))#
+plot(1,1,type="n",bty="n",xlim=c(0,7),ylim=c(0,100),xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")#
+axis(side=2,seq(0,100,25),labels=paste0(seq(0,100,25),"%"),lwd=4,lwd.ticks=4,las=2,font=2,cex.axis=2)#
+mtext(side=2,line=6,text="Percent chosen",cex=2.5,font=2)#
+segments(x0=0,x1=7,y0=0,lwd=4,xpd=NA)#
+axis(side=1,at=c(2,5+big_gap),labels=c("Defendant close","Defendant far"),cex.axis=1.5,font=2,tick=F)#
+## left two bars#
+rect(1-gap_between,0,2-gap_between,defendant_close[1]*100,lwd=2,col="wheat3")#
+text(x=mean(c(1-gap_between,2-gap_between)),#
+	y=defendant_close[1]*100+above_factor,#
+	labels="54%",font=2,cex=2)#
+text(x=mean(c(1-gap_between,2-gap_between)),#
+	y=defendant_close[1]*100-above_factor/2-1,#
+	labels="N=266",cex=1.05)#
+rect(2+gap_between,0,3+gap_between,defendant_close[2]*100,lwd=2,col="orangE2")#
+text(x=mean(c(2+gap_between,3+gap_between)),#
+	y=defendant_close[2]*100+above_factor,#
+	labels="46%",font=2,cex=2)#
+text(x=mean(c(2+gap_between,3+gap_between)),#
+	y=defendant_close[2]*100-above_factor/2-1,#
+	labels="N=223",cex=1.05)#
+## right two bars#
+rect(4-gap_between+big_gap,0,5-gap_between+big_gap,defendant_far[1]*100,lwd=2,col="wheat3")#
+text(x=mean(c(4-gap_between+big_gap,5-gap_between+big_gap)),#
+	y=defendant_far[1]*100+above_factor,#
+	labels="35%",font=2,cex=2)#
+text(x=mean(c(4-gap_between+big_gap,5-gap_between+big_gap)),#
+	y=defendant_far[1]*100-above_factor/2-1,#
+	labels="N=167",cex=1.05)#
+rect(5+gap_between+big_gap,0,6+gap_between+big_gap,defendant_far[2]*100,lwd=2,col="orangE2")#
+text(x=mean(c(5+gap_between+big_gap,6+gap_between+big_gap)),#
+	y=defendant_far[2]*100+above_factor,#
+	labels="65%",font=2,cex=2,xpd=NA)#
+text(x=mean(c(5+gap_between+big_gap,6+gap_between+big_gap)),#
+	y=defendant_far[2]*100-above_factor/2-1,#
+	labels="N=314",cex=1.05)#
+segments(x0=0,x1=7,y0=0,lwd=4,xpd=NA)#
+## Add legend:#
+legend("topright",pt.bg=c("wheat3","orangE2"),legend=c("picked defendant","picked prosecutor"),pch=22,cex=1.15,pt.cex=1.25,box.lwd=2)
+chisq.test(c(11,16,20))
+c(11,16,20)/sum(c(11,16,20))
+library(jsonlite)
+iris.json = toJSON(iris)
+iris.json
+iris2 = fromJSON(iris.json)
+iris2
+library(data.table)
+install.packages("data.table")
+library(data.table)
+DF = data.frame(x=rnorm(9),y=rep(c("a","b","c"),each=3),z=rnorm(9))
+DF
+head(DF,3)
+DF = data.table(x=rnorm(9),y=rep(c("a","b","c"),each=3),z=rnorm(9))
+head(DF,3)
+tables()
+DT[2,]
+DT = data.table(x=rnorm(9),y=rep(c("a","b","c"),each=3),z=rnorm(9))#
+head(DT,3)#
+#
+tables()
+DT[2,]
+DT[2,1]
+DT[DT$y == "a",]
+DT[DT$y == "b",]
+DT[c(2,3)]
+DT[,c(2,3)]
+DT[,list(mean(x),mean(y),sum(y))]
+DT[,list(mean(x),mean(z))]
+DT[,list(mean(x),mean(z),sum(z))]
+DT[,w:=z^2]
+DT
+DT[,m:={tmp <- (x+z); log2(tmp+5)}]
+DT
+DF
+DT
+DT[,a:=x>0]
+DT
+DT[,b:=mean(x+w),by=a]
+DT
+DT = data.table(x=sample(letters[1:3],1E5,T))
+head(DT)
+DF[,.N,by=x]
+DT = data.tabl(x=rep(letters[1:3],each=100),y=rnorm(300))
+DT = data.table(x=rep(letters[1:3],each=100),y=rnorm(300))
+setkey(DT,x)
+head(DT)
+DT = data.table(x=rep(letters[1:3],each=100),y=rnorm(300))
+head(DT)
+setkey(DT,x)
+head(DT)
+install.packages("RMySQL")
+library(RMySQL)
+ucscDb <- dbConnect(MySQL(),user="genome",#
+	host="genome-mysql.cse.ucsc.du")
+ucscDb <- dbConnect(MySQL(),user="genome",#
+	host="genome-mysql.cse.ucsc.edu")
+result <- dbGetQuery(ucscDb,"show databases;");dbDisconnect(ucscDb)
+result
+dbDisconnect(ucscDb)
+result <- dbGetQuery(ucscDb,"show databases;");dbDisconnect(ucscDb)
+result
+hg19 <- dbConnect(MySQL(),user="genome",db="hg19",#
+	host="genome-mysql.cse.ucsc.edu")
+allTables <- dbListTables(hg19)
+allTables[1:5]
+dbListFields(hg19,"affyU133Plus2")
+dbGetQuery(hg19,"select count(*) from affyU133Plus2")
+affyData <- dbReadTable(hg19,"affyU133Plus2")
+warnings()
+query <- dbSendQuery(hg19,"select * from affyU133Plus2 where misMatches between 1 and 3")
+dbDisconnect(ucscDb)
+ucscDb <- dbConnect(MySQL(),user="genome",#
+	host="genome-mysql.cse.ucsc.edu")
+query <- dbSendQuery(hg19,"select * from affyU133Plus2 where misMatches between 1 and 3")
+hg19 <- dbConnect(MySQL(),user="genome",db="hg19",#
+	host="genome-mysql.cse.ucsc.edu")
+query <- dbSendQuery(hg19,"select * from affyU133Plus2 where misMatches between 1 and 3")
+affyData <- dbReadTable(hg19,"affyU133Plus2")
+head(query)
+query
+affyMis <- fetch(query); quantile(affyMis$misMatches)
+affyMisSmall <- fetch(query,n=10); dbClearResult(query);
+affyMisSmall
+dim(affyMisSmall)
+dbDisconnect(hg19)
+con = url("https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en")#
+htmlCode = readLines(con)
+con = getURL("https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en")
+apropos("URL")
+library(RCurl)
+apropos("URL")
+con = getURL("https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en")
+con
+library(XML)
+html = htmlTreeParse(con,useInternalNodes=T)
+xpathSApply(html,"//title",xmlValue)
+library(httr)
+html2 = GET(https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en)
+h
+html2 = GET("https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en")
+content2 = content(html2,as="text")
+parsedHtml = htmlPars(content2,asText=TRUE)
+parsedHtml = htmlParse(content2,asText=TRUE)
+head(parsedHtml)
+pg2 = GET("http://httpbin.org/basic-auth/user/passwd",authenticate("user","passwd"))
+pg2
+names(pg2)
+pg2$cookis
+pg2$cookies
+pg2$url
+pg2$times
+pg2$request
+con = content(pg2)
+head(con)
+str(con)
+pg1 = GET(handle=google,path="/")
+google = handle("http://google.com")#
+pg1 = GET(handle=google,path="/")
+pg2 = GET(handle=google,path="search")
+pg2
+library(httr)
+myapp = oauth_app("twitter",key="lwOCkjidg5k5N5piRFUS822dW",secret="lwOCkjidg5k5N5piRFUS822dW")
+myapp = oauth_app("twitter",#
+	key="lwOCkjidg5k5N5piRFUS822dW",#
+	secret="44qQKnxzO8pMpYgyeNcPNd6aUQZATFXkZUiHip3l3FPABRdBJU")
+sig = sign_oauth1.0(myapp,#
+	token="3239583325-6HSJZSLmKSNlxfHNBuwlypJuzjfRLrCP63w8sM0",#
+	token_secret="6th7sEKbmaHC2Tcj0h0wsc7F8e3B54gdk6ckYvU7AtzGm")
+homeTL = GET("https://api.twitter.com/1.1/statuses/home_timeline.json",sig)
+head(homeTL)
+json1 = content(homeTL)
+json2 = jsonlite::fromJSON(toJSON(json1))
+json2[1,1:4]
+source("http://bioconductor.org/biocLite.R")
+biocLite("rhdf5")
+h5write(c(12,13,14),"example.h5","foo/A",index=list(1:3,1))#
+h5read("example.h5","foo/A")
+install.packages("kernlab")
+library(kernlab)#
+data(spam)#
+set.seed(3435)#
+trainIndicator = rbinom(4601,size=1,prob=0.5)#
+tabl(trainIndicator)
+table(trainIndicator)
+trainSpam = spam[trainIndicator == 1,]#
+testSpam = spam[trainIndicator == 0,]
+names(trainSpam)
+head(trainSpam,2)
+table(trainSpam$type)
+plot(trainSpam$capitalAve ~ trainSpam$type)
+plot(log(trainSpam$capitalAve) ~ trainSpam$type)
+plot(log10(trainSpam$capitalAve+1) ~ trainSpam$type)
+plot(log10(trainSpam[,1:4]+1))
+hCluster = hclust(dist(t(trainSpam[,1:57])))
+plot(hCluster)
+hCluster = hclust(dist(t(log10(trainSpam[,1:55]+1))))
+plot(hCluster)
+trainSpam$numType = as.numeric(trainSpam$type)-1
+costFunction = function(x,y)sum(x != (y>0.5))
+cvError = rep(NA,55)
+library(boot)
+?cv.glm
+for(i in 1:55){#
+	lmFormula = reformulate(names(trainSpam)[i], response="numType")#
+	glmFit = glm(lmFormula,family="binomial",data=tranSpam)#
+	cvError[i] = cv.glm(trainSpam,glmFit,costFunction,2)$delta[2]#
+	}
+trainSpam$numType = as.numeric(trainSpam$type)-1#
+costFunction = function(x,y)sum(x != (y>0.5))#
+cvError = rep(NA,55)#
+library(boot)#
+for(i in 1:55){#
+	lmFormula = reformulate(names(trainSpam)[i], response="numType")#
+	glmFit = glm(lmFormula,family="binomial",data=traniSpam)#
+	cvError[i] = cv.glm(trainSpam,glmFit,costFunction,2)$delta[2]#
+	}
+trainSpam$numType = as.numeric(trainSpam$type)-1#
+costFunction = function(x,y)sum(x != (y>0.5))#
+cvError = rep(NA,55)#
+library(boot)#
+for(i in 1:55){#
+	lmFormula = reformulate(names(trainSpam)[i], response="numType")#
+	glmFit = glm(lmFormula,family="binomial",data=trainSpam)#
+	cvError[i] = cv.glm(trainSpam,glmFit,costFunction,2)$delta[2]#
+	}
+names(trainSpam)[which.min(cvError)]
+predictionModel = glm(NumType ~ charDollar,family="binomial",data=trainSpam)
+predictionModel
+predictionModel = glm(numType ~ charDollar,family="binomial",data=trainSpam)
+predictionModel
+summary(predictionModel)
+predictionTest = predict(predictionModel,testSpam)
+predictionTest
+predictedSpam = rep("nonspam",dim(testSpam)[1])
+predictedSpam
+dim(testSpam)[1]
+dim(testSpam)
+predictedSpam[predictionModel$fitted > 0.5] = "spam"
+predictedSpam
+table(predictedSpam,testSpam$type)
+diag(table(predictedSpam,testSpam$type))
+sum(diag(table(predictedSpam,testSpam$type)))
+sum(diag(table(predictedSpam,testSpam$type)))/sum(table(predictedSpam,testSpam$type))
+1-sum(diag(table(predictedSpam,testSpam$type)))/sum(table(predictedSpam,testSpam$type))
+reformulate("A","B")
+reformulate(c("A","C"),"B")
+x = c(3,2,5,1,4)
+sort(x)
+sort(x,decreasing=F)
+sort(x,decreasing=T)
+x = c(3,2,NA,5,NA,1,NA,4)
+sort(x,decreasing=T)
+sort(x,decreasing=F)
+sort(x,decreasing=F,na.last=T)
+order(x)
+x[order(x)]
+x[order(x,decreasing=T)]
+x[order(x,decreasing=T,na.last=F)]
+set.seed(13435)
+X <- data.frame("var1"=sample(1:5),"var2"=sample(6:10),"var3"=sample(11:15))
+set.seed(13435)#
+X <- data.frame("var1"=sample(1:5),"var2"=sample(6:10),"var3"=sample(11:15))#
+X <- X[sample(1:5),]; X$var2[c(1,3)] = NA
+X
+library(plyr)
+arrange(X,var1)
+arrange(X,desc(var1))
+arrange(X,desc(var2))
+arrange(X,desc(var3))
+getwd()
+220
+200/220
+(200/220)*640
+29+9
+872+652
+# Iconicity preprocessing#
+### Bodo Wintr#
+### June 10, 2015#
+#
+### Preliminaries:#
+#
+setwd("/Users/teeniematlock/Desktop/research/iconicity/analysis/")#
+icon1 <- read.csv("english_iconicity_first_norming_bout.csv")#
+icon2 <- read.csv("english_iconicity_second_norming_bout.csv")#
+library(dplyr)#
+#
+### Take averages:#
+#
+wordavg <- aggregate(rating ~ word,icon2,mean)#
+#
+### Rename:#
+#
+names(wordavg) <- c("Word","Written")
