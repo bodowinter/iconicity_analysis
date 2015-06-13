@@ -14,6 +14,8 @@ Several analyses were performed:
 * the relationship between affect and iconicity
 * the relationship between sensory modality ratings and iconicity
 * finally: does iconicity predict unique RT variance?
+* how is word length associated with iconicity? (Marcus's follow up question)
+* how are the modality ratings related to concreteness? (Marcus question #2)
 
 ```{r echo=FALSE}
      setwd("/Users/teeniematlock/Desktop/research/iconicity/analysis/")
@@ -91,7 +93,8 @@ How is iconicity related to concreteness?
 It seems to be that words of intermediate concreteness are the most iconic words. We can test this by fitting a quadratic model:
 
 ```{r cache=T}
-     anova(lm(Written ~ Conc + I(Conc^2),icon))
+     icon$Conc_c <- icon$Conc - mean(icon$Conc,na.rm=T)     # centering
+     anova(lm(Written ~ Conc_c + I(Conc_c^2),icon))
 ```
 
 <br><br><br>
@@ -139,6 +142,54 @@ We can test whether there are significant iconicity differences between words fo
      anova(lm(Written ~ DantzigDominantModality,icon))
 ```
 
+Let's check which pairwise comparisons are significant using Tukey's HSD:
+
+```{r cache=T}
+     TukeyHSD(aov(Written ~ DominantModality,icon))
+     TukeyHSD(aov(Written ~ DantzigDominantModality,icon))
+```
+
+Finally, rather than looking at discrete comparisons between "dominant modality" and iconicity, we can look continuously at this, to see whether words that are ***not*** dominantly related to audition or touch relate to iconicity if they are relatively more "auditory" or "haptic":
+
+```{r cache=T, fig.width=8, fig.height=4}
+     icon$AuditoryYesNo <- ifelse(icon$DominantModality=="Auditory",
+                                   "yes","no")
+     ggplot(icon[!is.na(icon$DominantModality),],
+          aes(x=AuditoryStrengthMean,y=Written,color=AuditoryYesNo)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm") 
+```
+
+Interesting, the auditory ones are already very high on iconicity and relative differences in "AuditoryStrength" do not create relative differences in iconicity for these words. However, the words that are not primarily auditory tend to be more iconic if they have higher "AuditoryStrength" measures. Although the effect looks tiny, so not sure whether they will be significant.
+
+Let's do the same thing for the haptic modality:
+
+```{r cache=T, fig.width=8, fig.height=4}
+     icon$HapticYesNo <- ifelse(icon$DominantModality=="Haptic",
+                                   "yes","no")
+     ggplot(icon[!is.na(icon$DominantModality),],
+          aes(x=HapticStrengthMean,y=Written,color=HapticYesNo)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm") 
+```
+
+This looks like a stronger effect, but only for the haptic words. Let's provide formal tests of both of these continuous models. Let's also test for the interaction, to see whether primarily "auditory" or "haptic" words behave differently. Since we have an interaction, we need to center effects ([Research Wahlberg](https://pbs.twimg.com/media/B7ag1xDCcAAiIyL.jpg:large)). To interpret the continuous effect, we should sum code the categorical predictors.
+
+```{r cache=T}
+     icon$HapticYesNo <- factor(icon$HapticYesNo,levels=c("yes","no"))
+     icon$AuditoryYesNo <- factor(icon$AuditoryYesNo,levels=c("yes","no"))
+     contrasts(icon$HapticYesNo) <- contr.sum(2)
+     contrasts(icon$AuditoryYesNo) <- contr.sum(2)
+
+     icon$HapticStrengthMean_c <- icon$HapticStrengthMean - mean(icon$HapticStrengthMean, na.rm=T)
+     icon$AuditoryStrengthMean_c <- icon$AuditoryStrengthMean - mean(icon$AuditoryStrengthMean,na.rm=T)
+
+     summary(lm(Written ~ HapticStrengthMean_c*HapticYesNo,icon))
+     summary(lm(Written ~ AuditoryStrengthMean_c*AuditoryYesNo,icon))
+```
+
+So no ***continuous*** auditory effect on iconicity (at least not with the interaction), but one for the haptic modality.
+
 
 <br><br><br>
 ## Does iconicity predict unique variance in reaction times?
@@ -171,5 +222,71 @@ Let's visualize that effect by residualizing AOA and WordFreq out:
 <br>
 The effect is small, but hey... ~4ms less per increase of iconicity 1. Not too bad.
 
+<br><br><br>
+## How is word length related to iconicity?
 
+Let's calculate word length, by now just using orthographic length as a proxy. Then we will plot that against iconicity.
+
+```{r cache=T, fig.width=8, fig.height=4}
+     icon$WLength <- nchar(as.character(icon$Word))
+     ggplot(icon,
+          aes(x=WLength,y=Written)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm")
+```
+
+No clear relation visible. Word length is obviously a factor that influences RTs, though, so let's see whether the above result regarding lexical decision tasks etc. is still robust with word length included.
+
+```{r cache=T}
+     summary(lm(RT ~ AOA + WordFreq + WLength + Written,icon))
+     summary(lm(NamingRT ~ AOA + WordFreq + WLength + Written,icon))
+```
+
+With word length taken into account, the effect of iconicity on word naming times goes away!
+
+
+<br><br><br>
+## Looking at modality ratings and concreteness togther
+
+Connell and Lynott (2012) showed that "perceptual strength" outperforms concreteness in predicting RTs. The measure used was simply the sum of all sensory strength associations, which we can easily compute and relate to iconicity. For comparability to the concreteness result above, let's also use a quadratic model.
+
+```{r cache=T, fig.width=8, fig.height=4}
+     icon$PStrength <- rowSums(icon[,grep("StrengthMean",names(icon))])
+     ggplot(icon,
+          aes(x=PStrength,y=Written)) +
+          geom_point(shape=16) +
+          geom_smooth(method="lm")
+     icon$PStrength_c <- icon$PStrength - mean(icon$PStrength,na.rm=T)#center
+     pstrength.mdl <- lm(Written ~ PStrength_c + I(PStrength_c^2),icon)
+     summary(pstrength.mdl)
+```
+
+It looks like there is a negative quadratic effect, like for concreteness. Let's compare the concreteness model and the PStrength model using AICs.
+
+
+```{r cache=T}
+     conc.mdl <- lm(Written ~ Conc + I(Conc^2),icon)
+     AIC(conc.mdl)
+     AIC(pstrength.mdl)
+```
+
+The perceptual strength measure outperforms concreteness by great lengths (usually an AIC difference of 10 would already be considered "significant"; Richards et al., 2011, "Model selection and model averaging in behavioural ecology: the utility of the IT-AIC framework").
+
+If we put both of them into the same model, perceptual strength outperforms concreteness:
+
+```{r cache=T}
+     xmdl <- lm(Written ~ Conc_c + I(Conc_c^2) +
+                    PStrength_c + I(PStrength_c^2),icon)
+```
+
+This is **not** simply due to them being collinear. In fact, there seems to be no issue with collinearity, as variance inflation factors show (values "substantially in excess of 1" are usually interpreted as bad, >3 is reason to worry):
+```{r cache=T}
+     library(car)
+     vif(xmdl)
+```
+
+So there's no problem with collinearity per se.
+
+
+<br><br><br><br><br>
 
